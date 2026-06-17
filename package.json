@@ -1,0 +1,9 @@
+{
+  "name": "iq-fred-prototype",
+  "version": "1.0.0",
+  "description": "IQ Intelligence prototype — Fred Ellison logistics scenario",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "homepage": "https://iq-fred-prototype.vercel.app"
+}
