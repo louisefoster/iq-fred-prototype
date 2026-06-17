@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IQ — Fred Ellison · Ops Platform</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --iq-orange: #D94F2B;
+    --iq-orange-light: #F5E8E3;
+    --iq-orange-mid: #F0D0C4;
+    --iq-amber: #E8922A;
+    --iq-amber-light: #FDF3E7;
+    --iq-teal: #2A8A8A;
+    --iq-teal-light: #E6F4F4;
+    --iq-red: #C0392B;
+    --iq-red-light: #FDECEA;
+    --iq-green: #27AE60;
+    --iq-green-light: #E8F8EF;
+    --bg: #F5F1ED;
+    --surface: #FFFFFF;
+    --surface-2: #F9F6F3;
+    --border: #E8E2DC;
+    --border-strong: #D4CCC4;
+    --text-primary: #1A1714;
+    --text-secondary: #6B625A;
+    --text-tertiary: #9C9189;
+    --nav-width: 48px;
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text-primary);
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+    font-size: 14px;
+  }
+
+  /* ── NAV ── */
+  nav {
+    width: var(--nav-width);
+    background: transparent;
+    border-right: none;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 14px 0 16px; gap: 2px; flex-shrink: 0; z-index: 100;
+    overflow: hidden;
+  }
+  .nav-logo {
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 14px;
+    flex-shrink: 0;
+  }
+
+  .nav-item {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--text-tertiary); transition: all 0.15s;
+    flex-shrink: 0; position: relative;
+  }
+  .nav-item:hover { background: var(--border); color: var(--text-secondary); }
+  .nav-item.active { color: var(--iq-orange); }
+  .nav-item svg { flex-shrink: 0; }
+
+  /* tooltip on hover */
+  .nav-item::after {
+    content: attr(title);
+    position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%);
+    background: var(--text-primary); color: white;
+    font-size: 11px; font-weight: 500; padding: 4px 8px; border-radius: 5px;
+    white-space: nowrap; opacity: 0; pointer-events: none;
+    transition: opacity 0.15s; z-index: 200;
+  }
+  .nav-item:hover::after { opacity: 1; }
+
+  .nav-section {
+    width: 24px; height: 1px; background: var(--border);
+    margin: 6px 0; flex-shrink: 0;
+  }
+
+  .nav-spacer { flex: 1; }
+  .nav-avatar {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--iq-orange);
+    color: white; font-weight: 600; font-size: 10px;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+  }
+  .nav-notif { position: relative; }
+  .nav-notif .badge {
+    position: absolute; top: 4px; right: 4px; width: 7px; height: 7px;
+    background: var(--iq-orange); border-radius: 50%; border: 2px solid var(--bg);
+  }
+  /* keep legacy .nav-icon working for bottom util */
+  .nav-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--text-tertiary); transition: all 0.15s; flex-shrink: 0;
+  }
+  .nav-icon:hover { background: var(--border); color: var(--text-secondary); }
+
+  /* ── MAIN ── */
+  main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+
+  /* ── PAGE BODY ── */
+  .page-body {
+    flex: 1;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+  }
+  .page-body::-webkit-scrollbar { width: 6px; }
+  .page-body::-webkit-scrollbar-track { background: transparent; }
+  .page-body::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+  .page-body::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+
+  /* ── HERO — positions greeting + input with top breathing room ── */
+  .hero {
+    padding: calc(12vh) 24px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: padding 0.4s ease;
+  }
+  .hero-inner {
+    width: 100%;
+    max-width: 620px;
+  }
+  /* collapse the hero once interacted — leaves just a tiny top gap */
+  body.interacted .hero {
+    padding: 0 24px 0;
+    pointer-events: none;
+  }
+
+  /* ── BELOW-FOLD — panels sit below the hero ── */
+  .below-fold {
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 0 24px 100px;
+    transition: padding-top 0.4s ease;
+  }
+  body.interacted .below-fold {
+    padding-top: 32px;
+    padding-bottom: 160px;
+  }
+
+  /* ── GREETING ── */
+  .greeting {
+    text-align: center;
+    padding: 0 0 24px;
+    max-height: 300px;
+    overflow: hidden;
+    transition: opacity 0.25s ease, max-height 0.4s ease, padding 0.4s ease, margin 0.4s ease;
+  }
+  body.interacted .greeting {
+    opacity: 0;
+    max-height: 0;
+    padding: 0;
+    margin: 0;
+    pointer-events: none;
+  }
+  /* IQ wordmark — large gradient text matching reference */
+  .greeting-wordmark {
+    font-size: 56px; font-weight: 800; letter-spacing: -2px; line-height: 1;
+    margin-bottom: 16px; display: inline-block;
+    background: linear-gradient(135deg, #D94F2B 30%, #E8922A 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .greeting-title {
+    font-size: 28px; font-weight: 700; color: var(--text-primary);
+    margin-bottom: 8px; letter-spacing: -0.5px;
+  }
+  .greeting-sub {
+    font-size: 15px; color: var(--text-secondary); line-height: 1.5;
+  }
+
+  /* ── INPUT BAR (hero state) ── */
+  .input-wrap {
+    padding: 0;
+    transition: opacity 0.25s ease, max-height 0.35s ease;
+    max-height: 200px;
+    overflow: hidden;
+  }
+  body.interacted .input-wrap {
+    opacity: 0;
+    max-height: 0;
+    pointer-events: none;
+  }
+
+  /* ── INPUT BAR FIXED (bottom state) ── */
+  .input-fixed {
+    position: fixed;
+    bottom: 0;
+    left: var(--nav-width);
+    right: 0;
+    padding: 28px 24px 20px;
+    background: linear-gradient(to top, var(--bg) 60%, transparent);
+    z-index: 50;
+    opacity: 0;
+    transform: translateY(12px);
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  body.interacted .input-fixed {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: all;
+  }
+  .input-fixed .input-bar {
+    max-width: 620px;
+    margin: 0 auto;
+  }
+  .input-bar {
+    background: var(--surface);
+    border: 1.5px solid var(--border-strong);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .input-bar:focus-within {
+    border-color: var(--iq-orange);
+    box-shadow: 0 4px 20px rgba(217,79,43,0.15);
+  }
+  .input-top { display: flex; align-items: center; padding: 12px 14px; gap: 10px; }
+  .input-field {
+    flex: 1; border: none; outline: none; font-size: 14px; background: transparent;
+    font-family: var(--font); color: var(--text-primary); resize: none; line-height: 1.4;
+  }
+  .input-field::placeholder { color: var(--text-tertiary); }
+  .input-send {
+    width: 32px; height: 32px; background: var(--iq-orange); border: none; border-radius: 8px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; flex-shrink: 0;
+  }
+  .input-send:hover { background: #C4451F; transform: scale(1.05); }
+  .input-mic {
+    width: 28px; height: 28px; border: none; background: transparent; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-tertiary); border-radius: 6px; transition: all 0.15s; flex-shrink: 0;
+  }
+  .input-mic:hover { color: var(--text-secondary); background: var(--bg); }
+  .input-bottom {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 14px 10px; border-top: 1px solid var(--border);
+  }
+  .input-plus {
+    width: 24px; height: 24px; border: none; background: transparent;
+    cursor: pointer; color: var(--text-tertiary); border-radius: 5px;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+  }
+  .input-plus:hover { color: var(--text-secondary); background: var(--bg); }
+  .workflows-btn {
+    display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500;
+    color: var(--text-secondary); cursor: pointer; transition: color 0.15s;
+    border: none; background: transparent; padding: 0;
+  }
+  .workflows-btn:hover { color: var(--text-primary); }
+  .workflows-btn svg { opacity: 0.6; }
+
+  /* ── BRIEFING SECTION LABEL ── */
+  .section-eyebrow {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text-tertiary); margin-bottom: 10px; padding-left: 2px; margin-top: 32px;
+  }
+
+  /* ── BRIEFING CARDS ── */
+  .briefing-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+  .bcard {
+    background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px;
+    padding: 14px; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
+  }
+  .bcard::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .bcard.risk::before { background: var(--iq-orange); }
+  .bcard.payroll::before { background: var(--iq-teal); }
+  .bcard.compliance::before { background: var(--iq-red); }
+  .bcard:not(.resolved):hover { border-color: var(--border-strong); box-shadow: 0 4px 16px rgba(0,0,0,0.08); transform: translateY(-1px); }
+  .bcard.active { border-color: var(--iq-orange); box-shadow: 0 0 0 3px var(--iq-orange-light); }
+  .bcard.active.payroll { border-color: var(--iq-teal); box-shadow: 0 0 0 3px var(--iq-teal-light); }
+  .bcard.active.compliance { border-color: var(--iq-red); box-shadow: 0 0 0 3px var(--iq-red-light); }
+  .bcard.resolved { opacity: 0.55; cursor: default; transform: none !important; box-shadow: none !important; }
+  .bcard-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
+  .bcard-icon { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .bcard-icon.risk { background: var(--iq-orange-light); color: var(--iq-orange); }
+  .bcard-icon.payroll { background: var(--iq-teal-light); color: var(--iq-teal); }
+  .bcard-icon.compliance { background: var(--iq-red-light); color: var(--iq-red); }
+  .bcard-chevron { color: var(--text-tertiary); flex-shrink: 0; transition: transform 0.2s; }
+  .bcard.active .bcard-chevron { transform: rotate(180deg); }
+  .bcard.resolved .bcard-chevron { display: none; }
+  .bcard-title { font-weight: 600; font-size: 13px; margin: 8px 0 4px; }
+  .bcard-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+  .bcard-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 10px; }
+
+  /* ── QUICK PROMPTS ── */
+  .quick-prompts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; margin-bottom: 6px; justify-content: center; }
+  .quick-prompt {
+    font-size: 13px; padding: 8px 14px;
+    border: 1px solid var(--border-strong); border-radius: 20px;
+    background: var(--surface); cursor: pointer;
+    color: var(--text-secondary); transition: all 0.15s; white-space: nowrap;
+  }
+  .quick-prompt:hover { border-color: var(--iq-orange); color: var(--iq-orange); background: var(--iq-orange-light); }
+
+  /* ── TAGS ── */
+  .tag { font-size: 10px; font-weight: 600; padding: 3px 7px; border-radius: 4px; border: 1px solid; letter-spacing: 0.2px; }
+  .tag.orange { color: var(--iq-orange); border-color: var(--iq-orange-mid); background: var(--iq-orange-light); }
+  .tag.teal { color: var(--iq-teal); border-color: #C0DEDE; background: var(--iq-teal-light); }
+  .tag.red { color: var(--iq-red); border-color: #F5C5C0; background: var(--iq-red-light); }
+  .tag.neutral { color: var(--text-secondary); border-color: var(--border); background: var(--bg); }
+  .tag.third-party { color: #5B4FCF; border-color: #D4CFEF; background: #F0EEFF; }
+
+  /* ── SECTION DIVIDER (between panels) ── */
+  .section-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0 16px; }
+  .section-divider::before, .section-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .section-label { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--text-tertiary); white-space: nowrap; }
+
+  /* ── PANELS (expanded card content) ── */
+  .panel {
+    background: var(--surface); border: 1.5px solid var(--border); border-radius: 14px;
+    overflow: hidden; animation: slideIn 0.25s ease;
+  }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+  .panel-header {
+    padding: 16px 18px 12px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-title { font-weight: 600; font-size: 14px; }
+  .panel-sub { font-size: 12px; color: var(--text-secondary); margin-top: 1px; }
+  .live-badge {
+    display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600;
+    color: var(--iq-green); background: var(--iq-green-light); padding: 4px 9px; border-radius: 20px; border: 1px solid #B8EDD0;
+  }
+  .live-dot { width: 6px; height: 6px; background: var(--iq-green); border-radius: 50%; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  /* ── TABLE ── */
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th { font-size: 10px; font-weight: 600; letter-spacing: 0.7px; text-transform: uppercase; color: var(--text-tertiary); text-align: left; padding: 10px 18px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+  .data-table td { padding: 13px 18px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: var(--bg); }
+  .hours-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .hours-bar { width: 80px; height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; }
+  .hours-fill { height: 100%; border-radius: 3px; }
+  .hours-fill.critical { background: var(--iq-red); }
+  .hours-fill.warning { background: var(--iq-amber); }
+  .hours-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+  .route-chip { font-size: 11px; font-weight: 600; background: var(--bg); border: 1px solid var(--border); padding: 3px 7px; border-radius: 4px; color: var(--text-secondary); font-family: 'Courier New', monospace; }
+  .stops-cell { display: flex; align-items: center; gap: 4px; color: var(--text-secondary); font-size: 12px; }
+
+  /* ── IQ SUGGEST ── */
+  .iq-suggest {
+    margin: 0 18px 16px;
+    background: linear-gradient(135deg, #FEF6F2 0%, #FDF9F7 100%);
+    border: 1px solid var(--iq-orange-mid); border-radius: 10px; padding: 12px 14px;
+  }
+  .iq-suggest-header { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--iq-orange); margin-bottom: 5px; }
+  .iq-suggest-text { font-size: 13px; color: var(--text-primary); line-height: 1.5; }
+
+  /* ── PANEL ACTIONS ── */
+  .panel-actions {
+    padding: 14px 18px; display: flex; gap: 10px; align-items: center;
+    border-top: 1px solid var(--border); background: var(--surface-2);
+  }
+  .btn-primary {
+    background: var(--iq-orange); color: white; border: none; border-radius: 8px;
+    padding: 9px 16px; font-size: 13px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; gap: 7px; transition: all 0.15s;
+  }
+  .btn-primary:hover { background: #C4451F; transform: translateY(-1px); box-shadow: 0 3px 10px rgba(217,79,43,0.3); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-secondary {
+    background: transparent; color: var(--text-secondary);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px 14px; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-secondary:hover { border-color: var(--border-strong); color: var(--text-primary); background: var(--bg); }
+
+  /* ── STATUS CHIPS ── */
+  .status-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 600; padding: 3px 7px; border-radius: 20px; }
+  .status-chip.sc-active { background: var(--iq-orange-light); color: var(--iq-orange); border: 1px solid var(--iq-orange-mid); }
+  .status-chip.sc-pending { background: var(--iq-amber-light); color: var(--iq-amber); border: 1px solid #F5D89A; }
+  .status-chip.sc-ready { background: var(--iq-green-light); color: var(--iq-green); border: 1px solid #B8EDD0; }
+  .status-chip.sc-external { background: #F0EEFF; color: #5B4FCF; border: 1px solid #D4CFEF; }
+
+  /* ── FINANCE CHART ── */
+  .finance-response { background: var(--surface); border: 1.5px solid var(--border); border-radius: 14px; overflow: hidden; animation: slideIn 0.25s ease; }
+  .finance-header { padding: 16px 18px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .chart-area { padding: 20px 18px; }
+  .chart-legend { display: flex; gap: 16px; margin-bottom: 16px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+  .bar-chart { display: flex; gap: 20px; align-items: flex-end; height: 100px; padding-bottom: 24px; position: relative; }
+  .bar-chart::after { content: ''; position: absolute; bottom: 24px; left: 0; right: 0; height: 1px; background: var(--border); }
+  .bar-label { font-size: 10px; color: var(--text-tertiary); text-align: center; margin-top: 6px; white-space: nowrap; }
+  .bar { width: 24px; border-radius: 4px 4px 0 0; cursor: pointer; transition: opacity 0.15s; }
+  .bar:hover { opacity: 0.85; }
+  .bar.plan { background: var(--border-strong); }
+  .bar.actual { background: var(--iq-orange); }
+  .bar.actual.over { background: var(--iq-red); }
+  .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .stat-box { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+  .stat-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary); margin-bottom: 4px; }
+  .stat-value { font-size: 20px; font-weight: 700; }
+  .stat-value.red { color: var(--iq-red); }
+  .stat-value.green { color: var(--iq-green); }
+  .stat-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* ── PIPELINE ── */
+  .pipeline { background: var(--surface); border: 1.5px solid var(--border); border-radius: 14px; overflow: hidden; animation: slideIn 0.25s ease; }
+  .pipeline-flow { display: flex; align-items: center; padding: 20px 18px; gap: 0; overflow-x: auto; }
+  .flow-step { display: flex; flex-direction: column; align-items: center; min-width: 100px; flex-shrink: 0; }
+  .flow-node { width: 48px; height: 48px; border-radius: 12px; border: 2px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; margin-bottom: 8px; transition: all 0.2s; }
+  .flow-node.fn-active { border-color: var(--iq-orange); background: var(--iq-orange-light); box-shadow: 0 0 0 3px var(--iq-orange-light); }
+  .flow-node.fn-third { border-color: #9B8FE0; background: #F0EEFF; border-style: dashed; }
+  .flow-node-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-align: center; max-width: 90px; }
+  .flow-node-sub { font-size: 10px; color: var(--text-tertiary); text-align: center; max-width: 90px; }
+  .flow-arrow { flex: 1; height: 2px; background: var(--border); position: relative; min-width: 16px; }
+  .flow-arrow::after { content: '›'; position: absolute; right: -6px; top: -9px; color: var(--text-tertiary); font-size: 16px; }
+  .flow-arrow.fa-active { background: var(--iq-orange); }
+  .flow-arrow.fa-active::after { color: var(--iq-orange); }
+  .flow-icon { font-size: 18px; }
+
+  /* ── COMPLIANCE MODULE ── */
+  .compliance-module { background: var(--surface); border: 1.5px solid var(--iq-red); border-radius: 14px; overflow: hidden; animation: slideIn 0.25s ease; box-shadow: 0 0 0 3px var(--iq-red-light); }
+  .compliance-header { background: linear-gradient(135deg, #FEF0EE 0%, #FDF6F5 100%); padding: 16px 18px; border-bottom: 1px solid #F5C5C0; display: flex; align-items: center; justify-content: space-between; }
+  .ai-badge { display: flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #5B4FCF; background: #F0EEFF; padding: 4px 9px; border-radius: 20px; border: 1px solid #D4CFEF; }
+  .pattern-timeline { padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+  .timeline-item { display: flex; gap: 12px; align-items: flex-start; }
+  .timeline-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--iq-red); flex-shrink: 0; margin-top: 5px; position: relative; }
+  .timeline-dot::before { content: ''; position: absolute; top: 8px; left: 3px; width: 2px; height: 18px; background: #F5C5C0; }
+  .timeline-item:last-child .timeline-dot::before { display: none; }
+  .timeline-text { font-size: 12px; line-height: 1.5; }
+  .timeline-text strong { color: var(--iq-red); }
+  .root-cause-box { margin: 0 18px 16px; background: var(--iq-amber-light); border: 1px solid #F5D89A; border-radius: 10px; padding: 12px 14px; }
+  .root-cause-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--iq-amber); margin-bottom: 4px; }
+  .root-cause-text { font-size: 13px; line-height: 1.5; }
+
+  /* ── CHAT-STYLE MESSAGES (for conversational queries) ── */
+  .chat-message { display: flex; gap: 12px; margin: 16px 0 4px; }
+  .chat-message.user { flex-direction: row-reverse; }
+  .chat-avatar { width: 28px; height: 28px; border-radius: 8px; background: var(--iq-orange); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px; }
+  .chat-avatar.user-av { background: var(--border-strong); }
+  .chat-body { flex: 1; }
+  .chat-message.user .chat-body { display: flex; flex-direction: column; align-items: flex-end; }
+  .chat-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 12px; }
+  .chat-message.user .chat-meta { flex-direction: row-reverse; }
+  .chat-sender { font-weight: 600; font-size: 13px; color: var(--iq-orange); }
+  .chat-sender.user-name { color: var(--text-secondary); }
+  .chat-time { font-size: 11px; color: var(--text-tertiary); }
+  .chat-bubble {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px 2px 12px 12px; padding: 10px 14px;
+    display: inline-block; font-size: 14px; line-height: 1.5;
+  }
+  .chat-intro { font-size: 14px; line-height: 1.5; color: var(--text-primary); margin-bottom: 10px; }
+
+  /* ── RESOLVED SUMMARY ── */
+  .resolved-row {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: var(--iq-green-light); border: 1.5px solid #B8EDD0;
+    border-radius: 12px; padding: 13px 15px;
+    margin: 8px 0 16px; animation: slideIn 0.2s ease;
+  }
+  .resolved-icon { width: 22px; height: 22px; border-radius: 50%; background: var(--iq-green); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .resolved-text { font-size: 13px; line-height: 1.5; color: var(--text-primary); }
+  .resolved-text strong { color: var(--iq-green); }
+
+  @media (max-width: 700px) { .briefing-cards { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <!-- IQ logo mark -->
+  <div class="nav-logo">
+    <svg viewBox="0 0 32 32" width="28" height="28" fill="none">
+      <text x="0" y="26" font-family="Georgia, serif" font-weight="800" font-size="28" fill="url(#ng)">IQ</text>
+      <defs><linearGradient id="ng" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#D94F2B"/><stop offset="100%" stop-color="#E8922A"/></linearGradient></defs>
+    </svg>
+  </div>
+
+  <div class="nav-item active" title="IQ Home"><svg viewBox="0 0 16 16" fill="currentColor" width="18" height="18"><path d="M8 1L9.5 6H15L10.5 9.5L12 14.5L8 11L4 14.5L5.5 9.5L1 6H6.5L8 1Z"/></svg></div>
+
+  <div class="nav-section"></div>
+
+  <div class="nav-item" title="Pay"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><rect x="1" y="3" width="14" height="10" rx="1.5"/><path d="M1 7h14"/><circle cx="8" cy="10.5" r="1.5"/></svg></div>
+  <div class="nav-item" title="Shifts"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><circle cx="8" cy="8" r="6.5"/><path d="M8 4v4l3 2"/></svg></div>
+  <div class="nav-item" title="People"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><circle cx="6" cy="5" r="2.5"/><path d="M1 14c0-2.5 2-4 5-4s5 1.5 5 4"/><path d="M11 3c1.2 0 2.5.8 2.5 2S12.2 7 11 7M13.5 14c0-1.8-1-3-2.5-3.5"/></svg></div>
+  <div class="nav-item" title="Risk"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><path d="M8 1.5L13.5 4v4c0 3-2.5 5.5-5.5 6C5 13.5 2.5 11 2.5 8V4L8 1.5z"/><path d="M8 6v3M8 10.5v.5"/></svg></div>
+  <div class="nav-item" title="Finance"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><path d="M2 12l3-4 3 2 3-5 3 3"/><rect x="1" y="1" width="14" height="14" rx="1.5"/></svg></div>
+  <div class="nav-item" title="Procurement"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><path d="M2 2h2l2 7h7l1-4H6"/><circle cx="7" cy="13" r="1"/><circle cx="12" cy="13" r="1"/></svg></div>
+  <div class="nav-item" title="Reports"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><rect x="2" y="2" width="12" height="13" rx="1.5"/><path d="M5 6h6M5 9h6M5 12h4"/></svg></div>
+
+  <div class="nav-spacer"></div>
+
+  <div class="nav-item nav-notif" title="Notifications"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><path d="M8 1C5.5 1 4 3 4 5v4l-1 2h10l-1-2V5c0-2-1.5-4-4-4z"/><path d="M6.5 13c0 .8.7 1.5 1.5 1.5s1.5-.7 1.5-1.5"/></svg><span class="badge"></span></div>
+  <div class="nav-item" title="Settings"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="18" height="18"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.1 3.1l1.1 1.1M11.8 11.8l1.1 1.1M3.1 12.9l1.1-1.1M11.8 4.2l1.1-1.1"/></svg></div>
+  <div class="nav-avatar" title="Fred Ellison">FE</div>
+</nav>
+
+<!-- MAIN -->
+<main>
+  <div class="page-body" id="pageBody">
+
+    <!-- HERO — vertically centred in viewport -->
+    <div class="hero">
+      <div class="hero-inner">
+
+        <!-- GREETING -->
+        <div class="greeting">
+          <div class="greeting-wordmark">IQ</div>
+          <div class="greeting-title">Good morning, Fred!</div>
+          <div class="greeting-sub">Here's what needs your attention today.</div>
+        </div>
+
+        <!-- INPUT BAR -->
+        <div class="input-wrap">
+          <div class="input-bar">
+            <div class="input-top">
+              <input class="input-field" id="inputField" placeholder="Ask IQ anything across T&A, Payroll, G&R, Financials, Qargo..." />
+              <button class="input-mic" title="Voice input">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><rect x="5" y="1" width="6" height="9" rx="3"/><path d="M2 8c0 3.3 2.7 6 6 6s6-2.7 6-6"/><path d="M8 14v2"/></svg>
+              </button>
+              <button class="input-send" onclick="handleSend()" title="Send">
+                <svg viewBox="0 0 16 16" fill="white" width="14" height="14"><path d="M2 8L14 2 8 14l-1.5-4.5L2 8z"/></svg>
+              </button>
+            </div>
+            <div class="input-bottom">
+              <button class="input-plus" title="Attach"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M8 2v12M2 8h12"/></svg></button>
+              <button class="workflows-btn">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="13" height="13"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><path d="M9 12h6M12 9v6"/></svg>
+                Workflows
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end hero-inner -->
+    </div><!-- end hero -->
+
+    <!-- BELOW FOLD — cards and panels -->
+    <div class="below-fold">
+
+      <!-- BRIEFING CARDS -->
+      <div class="section-eyebrow" style="margin-top:0">Action items</div>
+      <div class="briefing-cards">
+        <div class="bcard risk" id="card-risk" onclick="togglePanel('risk')">
+          <div class="bcard-header">
+            <div class="bcard-icon risk" id="card-risk-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14"><path d="M8 2L14.5 13H1.5L8 2z"/><path d="M8 7v3M8 11.5v.5"/></svg></div>
+            <svg class="bcard-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 6l4 4 4-4"/></svg>
+          </div>
+          <div class="bcard-title" id="card-risk-title">Driver hours risk</div>
+          <div class="bcard-desc" id="card-risk-desc">4 drivers near WTD limit — 3 Qargo deliveries still assigned</div>
+          <div class="bcard-tags"><span class="tag orange">T&amp;A</span><span class="tag third-party">Qargo</span></div>
+        </div>
+
+        <div class="bcard payroll" id="card-payroll" onclick="togglePanel('payroll')">
+          <div class="bcard-header">
+            <div class="bcard-icon payroll" id="card-payroll-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14"><circle cx="8" cy="8" r="6.5"/><path d="M8 4v4l3 2"/></svg></div>
+            <svg class="bcard-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 6l4 4 4-4"/></svg>
+          </div>
+          <div class="bcard-title" id="card-payroll-title">Payroll closes Friday</div>
+          <div class="bcard-desc" id="card-payroll-desc">14 timesheets unconfirmed — 3 new starters not yet validated</div>
+          <div class="bcard-tags"><span class="tag teal">Payroll</span><span class="tag teal">T&amp;A</span></div>
+        </div>
+
+        <div class="bcard compliance" id="card-compliance" onclick="togglePanel('compliance')">
+          <div class="bcard-header">
+            <div class="bcard-icon compliance" id="card-compliance-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14"><path d="M8 1.5L13.5 4v4c0 3-2.5 5.5-5.5 6C5 13.5 2.5 11 2.5 8V4L8 1.5z"/><path d="M5.5 8l2 2 3.5-3.5"/></svg></div>
+            <svg class="bcard-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 6l4 4 4-4"/></svg>
+          </div>
+          <div class="bcard-title" id="card-compliance-title">AI Compliance flag</div>
+          <div class="bcard-desc" id="card-compliance-desc">Pattern detected — East Midlands route, 6 complaints in 72hrs</div>
+          <div class="bcard-tags"><span class="tag red">G&amp;R</span><span class="tag neutral">AI Module</span></div>
+        </div>
+      </div>
+
+      <!-- QUICK PROMPTS -->
+      <div class="quick-prompts" id="quickPrompts">
+        <div class="quick-prompt" onclick="triggerFinance()">How much are we spending on subcontractors vs plan?</div>
+        <div class="quick-prompt" onclick="triggerRecruitment()">Show driver pipeline from Eploy</div>
+        <div class="quick-prompt" onclick="triggerContracts()">Which S2C contracts are up for renewal?</div>
+      </div>
+
+      <!-- DYNAMIC PANELS — injected here in click order -->
+      <div id="dynamic-panels"></div>
+
+    </div><!-- end below-fold -->
+  </div><!-- end page-body -->
+
+  <!-- FIXED BOTTOM INPUT (shown after first interaction) -->
+  <div class="input-fixed">
+    <div class="input-bar">
+      <div class="input-top">
+        <input class="input-field" id="inputFieldFixed" placeholder="Ask IQ anything across T&A, Payroll, G&R, Financials, Qargo..." />
+        <button class="input-mic" title="Voice input">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16"><rect x="5" y="1" width="6" height="9" rx="3"/><path d="M2 8c0 3.3 2.7 6 6 6s6-2.7 6-6"/><path d="M8 14v2"/></svg>
+        </button>
+        <button class="input-send" onclick="handleSendFixed()" title="Send">
+          <svg viewBox="0 0 16 16" fill="white" width="14" height="14"><path d="M2 8L14 2 8 14l-1.5-4.5L2 8z"/></svg>
+        </button>
+      </div>
+      <div class="input-bottom">
+        <button class="input-plus" title="Attach"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M8 2v12M2 8h12"/></svg></button>
+        <button class="workflows-btn">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="13" height="13"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><path d="M9 12h6M12 9v6"/></svg>
+          Workflows
+        </button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- PANEL STORE -->
+<div id="panel-store" style="display:none">
+
+  <!-- RISK PANEL -->
+  <div id="panel-risk">
+    <div class="section-divider"><span class="section-label">Driver &amp; Route Risk</span></div>
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Driver WTD Hours — Live Status</div>
+          <div class="panel-sub">4 drivers approaching WTD limit · 3 Qargo deliveries at breach risk</div>
+        </div>
+        <div class="live-badge"><span class="live-dot"></span>LIVE</div>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Driver</th><th>Hours / WTD</th><th>Route</th><th>Remaining Stops</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td><strong>T. Walsh</strong></td><td><div class="hours-bar-wrap"><div class="hours-bar"><div class="hours-fill critical" style="width:93%"></div></div><span class="hours-label">46h / 48h</span></div></td><td><span class="route-chip">EM-119</span></td><td><span class="stops-cell"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" width="11" height="11"><circle cx="6" cy="6" r="4.5"/><path d="M6 3v3l2 1.5"/></svg> 2 stops</span></td><td><span class="status-chip sc-active">⚠ Critical</span></td></tr>
+          <tr><td><strong>P. Singh</strong></td><td><div class="hours-bar-wrap"><div class="hours-bar"><div class="hours-fill critical" style="width:94%"></div></div><span class="hours-label">45h / 48h</span></div></td><td><span class="route-chip">MN-224</span></td><td><span class="stops-cell"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" width="11" height="11"><circle cx="6" cy="6" r="4.5"/><path d="M6 3v3l2 1.5"/></svg> 1 stop</span></td><td><span class="status-chip sc-active">⚠ Critical</span></td></tr>
+          <tr><td><strong>K. Osei</strong></td><td><div class="hours-bar-wrap"><div class="hours-bar"><div class="hours-fill warning" style="width:92%"></div></div><span class="hours-label">44h / 48h</span></div></td><td><span class="route-chip">EM-447</span></td><td><span class="stops-cell"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" width="11" height="11"><circle cx="6" cy="6" r="4.5"/><path d="M6 3v3l2 1.5"/></svg> 2 stops</span></td><td><span class="status-chip sc-pending">↑ Warning</span></td></tr>
+          <tr><td><strong>D. Mahmoud</strong></td><td><div class="hours-bar-wrap"><div class="hours-bar"><div class="hours-fill warning" style="width:90%"></div></div><span class="hours-label">43h / 48h</span></div></td><td><span class="route-chip">LN-033</span></td><td><span class="stops-cell"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" width="11" height="11"><circle cx="6" cy="6" r="4.5"/><path d="M6 3v3l2 1.5"/></svg> 3 stops</span></td><td><span class="status-chip sc-pending">↑ Warning</span></td></tr>
+        </tbody>
+      </table>
+      <div class="iq-suggest">
+        <div class="iq-suggest-header"><svg viewBox="0 0 16 16" fill="currentColor" width="13" height="13"><path d="M8 1L9.5 6H15L10.5 9.5L12 14.5L8 11L4 14.5L5.5 9.5L1 6H6.5L8 1Z"/></svg>IQ suggests</div>
+        <div class="iq-suggest-text">Reallocate 5 stops to <strong>J. Chen</strong> (31h available, Midlands depot) and <strong>M. Okoro</strong> (29h available). Decision logged across T&amp;A and G&amp;R simultaneously. Qargo schedule updated automatically.</div>
+      </div>
+      <div class="panel-actions">
+        <button class="btn-primary" onclick="resolvePanel('risk')"><svg viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="2" width="14" height="14"><path d="M2 8l4 4 8-8"/></svg>Reassign &amp; log decision</button>
+        <button class="btn-secondary">View in Qargo</button>
+        <button class="btn-secondary">Review manually</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAYROLL PANEL -->
+  <div id="panel-payroll">
+    <div class="section-divider"><span class="section-label">Payroll &amp; Time</span></div>
+    <div class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Payroll Readiness — Week 25</div>
+          <div class="panel-sub">Closes Friday 27 Jun · 14 timesheets require action before processing</div>
+        </div>
+        <span class="status-chip sc-pending">2 days left</span>
+      </div>
+      <div style="padding:16px 18px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+        <div class="stat-box"><div class="stat-label">Confirmed</div><div class="stat-value green">127</div><div class="stat-sub">Ready for payroll</div></div>
+        <div class="stat-box" style="border-color:var(--iq-amber);background:var(--iq-amber-light);"><div class="stat-label">Unconfirmed</div><div class="stat-value" style="color:var(--iq-amber)">14</div><div class="stat-sub">Manager approval needed</div></div>
+        <div class="stat-box" style="border-color:#F5C5C0;background:var(--iq-red-light);"><div class="stat-label">New starters</div><div class="stat-value red">3</div><div class="stat-sub">HR validation incomplete</div></div>
+      </div>
+      <div class="iq-suggest">
+        <div class="iq-suggest-header"><svg viewBox="0 0 16 16" fill="currentColor" width="13" height="13"><path d="M8 1L9.5 6H15L10.5 9.5L12 14.5L8 11L4 14.5L5.5 9.5L1 6H6.5L8 1Z"/></svg>IQ suggests</div>
+        <div class="iq-suggest-text">Send automated approval reminder to 4 line managers with outstanding timesheets. 3 new starters can be validated via HR module in one step — all onboarding docs are complete.</div>
+      </div>
+      <div class="panel-actions">
+        <button class="btn-primary" style="background:var(--iq-teal)" onclick="resolvePanel('payroll')"><svg viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="2" width="14" height="14"><path d="M2 8l4 4 8-8"/></svg>Send reminders &amp; validate starters</button>
+        <button class="btn-secondary">Review timesheets</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMPLIANCE PANEL -->
+  <div id="panel-compliance">
+    <div class="section-divider"><span class="section-label">AI Compliance — Pattern Detection</span></div>
+    <div class="compliance-module">
+      <div class="compliance-header">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <div class="panel-title" style="color:var(--iq-red)">Complaint Pattern — East Midlands</div>
+            <div class="ai-badge"><svg viewBox="0 0 16 16" fill="currentColor" width="10" height="10"><path d="M8 1L9.5 6H15L10.5 9.5L12 14.5L8 11L4 14.5L5.5 9.5L1 6H6.5L8 1Z"/></svg>AI Module</div>
+          </div>
+          <div class="panel-sub">6 complaints · same depot · 72-hour window · delivery-window breaches</div>
+        </div>
+        <span class="status-chip sc-active" style="background:var(--iq-red-light);color:var(--iq-red);border-color:#F5C5C0;">Review required</span>
+      </div>
+      <div class="pattern-timeline">
+        <div class="timeline-item"><div class="timeline-dot"></div><div class="timeline-text"><strong>Mon 23 Jun 07:12</strong> — Complaint #1: missed delivery window, EM depot, route EM-119</div></div>
+        <div class="timeline-item"><div class="timeline-dot"></div><div class="timeline-text"><strong>Mon 23 Jun 14:35</strong> — Complaints #2 &amp; #3: same route, different customers, same time window</div></div>
+        <div class="timeline-item"><div class="timeline-dot"></div><div class="timeline-text"><strong>Tue 24 Jun 09:18</strong> — Complaint #4: route EM-447 — second driver, same depot</div></div>
+        <div class="timeline-item" style="margin-bottom:4px"><div class="timeline-dot" style="background:var(--iq-amber)"></div><div class="timeline-text"><strong>Pattern threshold crossed</strong> — IQ flagged for review at 6 complaints</div></div>
+      </div>
+      <div class="root-cause-box">
+        <div class="root-cause-label">IQ Root Cause Analysis</div>
+        <div class="root-cause-text">Qargo scheduling conflict: EM depot assigned 3 overlapping time windows between 13:00–15:30. Drivers physically cannot complete all stops in window. Conflict exists in Tuesday schedule too — <strong>2 more breaches likely today</strong> unless Qargo schedule is adjusted.</div>
+      </div>
+      <div style="padding:16px 18px 12px;border-top:1px solid #F5C5C0;">
+        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Suggested actions</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;padding:8px 10px;background:var(--bg);border-radius:7px;border:1px solid var(--border);"><input type="checkbox" checked style="accent-color:var(--iq-orange);width:14px;height:14px;"> Raise reportable incident in G&amp;R — auto-populated from pattern data</div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;padding:8px 10px;background:var(--bg);border-radius:7px;border:1px solid var(--border);"><input type="checkbox" checked style="accent-color:var(--iq-orange);width:14px;height:14px;"> Adjust Tuesday Qargo schedule — resolve overlapping time windows</div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;padding:8px 10px;background:var(--bg);border-radius:7px;border:1px solid var(--border);"><input type="checkbox" style="accent-color:var(--iq-orange);width:14px;height:14px;"> Notify affected customers — template available</div>
+        </div>
+      </div>
+      <div class="panel-actions" style="border-top-color:#F5C5C0;">
+        <button class="btn-primary" style="background:var(--iq-red);" onclick="resolvePanel('compliance')"><svg viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="2" width="14" height="14"><path d="M2 8l4 4 8-8"/></svg>Raise incident &amp; fix schedule</button>
+        <button class="btn-secondary">Review complaints</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FINANCE PANEL -->
+  <div id="panel-finance-wrap">
+    <div class="section-divider"><span class="section-label">Finance &amp; Contracts</span></div>
+    <div class="chat-message user">
+      <div class="chat-avatar user-av"><svg viewBox="0 0 16 16" fill="none" stroke="var(--text-secondary)" stroke-width="1.5" width="13" height="13"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/></svg></div>
+      <div class="chat-body">
+        <div class="chat-meta"><span class="chat-sender user-name">Fred</span><span class="chat-time">08:44</span></div>
+        <div class="chat-bubble">How much are we spending on subcontractors vs plan this quarter?</div>
+      </div>
+    </div>
+    <div class="finance-response" style="margin-top:12px">
+      <div class="finance-header">
+        <div><div class="panel-title">Subcontractor Spend — Q2 2026</div><div class="panel-sub">Financials · Purchasing orders · S2C contract thresholds</div></div>
+        <span class="status-chip sc-active" style="background:var(--iq-red-light);color:var(--iq-red);border-color:#F5C5C0;">34% over plan</span>
+      </div>
+      <div class="chart-area">
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--border-strong)"></div>Plan</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--iq-orange)"></div>Actual</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--iq-red)"></div>Over threshold</div>
+        </div>
+        <div class="bar-chart">
+          <div style="display:flex;flex-direction:column;align-items:center;"><div style="display:flex;gap:4px;align-items:flex-end;"><div class="bar plan" style="height:52px"></div><div class="bar actual" style="height:54px"></div></div><div class="bar-label">Apr</div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;"><div style="display:flex;gap:4px;align-items:flex-end;"><div class="bar plan" style="height:48px"></div><div class="bar actual" style="height:56px"></div></div><div class="bar-label">May</div></div>
+          <div style="display:flex;flex-direction:column;align-items:center;"><div style="display:flex;gap:4px;align-items:flex-end;"><div class="bar plan" style="height:50px"></div><div class="bar actual over" style="height:74px"></div></div><div class="bar-label">Jun ←</div></div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-box"><div class="stat-label">Q2 Plan</div><div class="stat-value">£148k</div><div class="stat-sub">Contracted ceiling</div></div>
+          <div class="stat-box" style="border-color:#F5C5C0;background:var(--iq-red-light)"><div class="stat-label">Q2 Actual</div><div class="stat-value red">£198k</div><div class="stat-sub">£50k over threshold</div></div>
+          <div class="stat-box" style="border-color:#F5D89A;background:var(--iq-amber-light)"><div class="stat-label">S2C Exposure</div><div class="stat-value" style="color:var(--iq-amber)">2 contracts</div><div class="stat-sub">Renegotiate before Aug</div></div>
+        </div>
+      </div>
+      <div class="iq-suggest">
+        <div class="iq-suggest-header"><svg viewBox="0 0 16 16" fill="currentColor" width="13" height="13"><path d="M8 1L9.5 6H15L10.5 9.5L12 14.5L8 11L4 14.5L5.5 9.5L1 6H6.5L8 1Z"/></svg>IQ suggests</div>
+        <div class="iq-suggest-text">2 S2C agreements with FleetLink Ltd and LogiTemp allow renegotiation before 1 August. I can draft a commercial summary for your procurement team — or initiate a review task in S2C now.</div>
+      </div>
+      <div class="panel-actions">
+        <button class="btn-primary" onclick="resolveConversational('finance')"><svg viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="2" width="14" height="14"><path d="M2 8l4 4 8-8"/></svg>Draft commercial summary</button>
+        <button class="btn-secondary">Initiate S2C review</button>
+        <button class="btn-secondary">Export to Finance</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECRUITMENT PANEL -->
+  <div id="panel-recruitment-wrap">
+    <div class="section-divider"><span class="section-label">Recruit to Pay</span></div>
+    <div class="chat-message user">
+      <div class="chat-avatar user-av"><svg viewBox="0 0 16 16" fill="none" stroke="var(--text-secondary)" stroke-width="1.5" width="13" height="13"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5"/></svg></div>
+      <div class="chat-body">
+        <div class="chat-meta"><span class="chat-sender user-name">Fred</span><span class="chat-time">08:45</span></div>
+        <div class="chat-bubble">Show driver pipeline from Eploy</div>
+      </div>
+    </div>
+    <div class="pipeline" style="margin-top:12px">
+      <div class="panel-header">
+        <div><div class="panel-title">Driver Recruit-to-Pay Pipeline</div><div class="panel-sub">Eploy → HR Onboarding → T&amp;A → Payroll · 3 roles live</div></div>
+        <span class="tag third-party">Eploy connected</span>
+      </div>
+      <div class="pipeline-flow">
+        <div class="flow-step"><div class="flow-node fn-third"><div class="flow-icon">🚀</div></div><div class="flow-node-label">Eploy</div><div class="flow-node-sub" style="margin-top:4px">3 live roles</div><span class="status-chip sc-external" style="margin-top:6px">3 active</span></div>
+        <div class="flow-arrow fa-active"></div>
+        <div class="flow-step"><div class="flow-node fn-active"><div class="flow-icon">📋</div></div><div class="flow-node-label">Offer &amp; Contract</div><div class="flow-node-sub" style="margin-top:4px">1 pending sign</div><span class="status-chip sc-pending" style="margin-top:6px">1 pending</span></div>
+        <div class="flow-arrow"></div>
+        <div class="flow-step"><div class="flow-node"><div class="flow-icon">👤</div></div><div class="flow-node-label">HR Onboarding</div><div class="flow-node-sub" style="margin-top:4px">Auto-triggered</div><span class="status-chip sc-ready" style="margin-top:6px">IQ-ready</span></div>
+        <div class="flow-arrow"></div>
+        <div class="flow-step"><div class="flow-node"><div class="flow-icon">⏱</div></div><div class="flow-node-label">T&amp;A from Day 1</div><div class="flow-node-sub" style="margin-top:4px">Auto-enrolled</div><span class="status-chip sc-ready" style="margin-top:6px">IQ-ready</span></div>
+        <div class="flow-arrow"></div>
+        <div class="flow-step"><div class="flow-node"><div class="flow-icon">💷</div></div><div class="flow-node-label">First Payslip</div><div class="flow-node-sub" style="margin-top:4px">Auto-calculated</div><span class="status-chip sc-ready" style="margin-top:6px">IQ-ready</span></div>
+      </div>
+      <div class="iq-suggest" style="margin-top:0">
+        <div class="iq-suggest-header"><svg viewBox="0 0 16 16" fill="currentColor" width="13" height="13"><path d="M8 1L9.5 6H15L10.5 9.5L12 14.5L8 11L4 14.5L5.5 9.5L1 6H6.5L8 1Z"/></svg>IQ suggests</div>
+        <div class="iq-suggest-text">Once the offer is signed in Eploy, IQ will automatically trigger HR onboarding, enrol in T&amp;A from start date, and calculate first payslip — no manual handoff between systems.</div>
+      </div>
+      <div class="panel-actions">
+        <button class="btn-primary" onclick="resolveConversational('recruitment')"><svg viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="2" width="14" height="14"><path d="M2 8l4 4 8-8"/></svg>Chase offer signature</button>
+        <button class="btn-secondary">View in Eploy</button>
+        <button class="btn-secondary">See all open roles</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end panel-store -->
+
+<script>
+  const STORE = document.getElementById('panel-store');
+  const MOUNT = document.getElementById('dynamic-panels');
+
+  const panelState = {
+    risk:        { open: false, resolved: false },
+    payroll:     { open: false, resolved: false },
+    compliance:  { open: false, resolved: false },
+    finance:     { shown: false },
+    recruitment: { shown: false },
+  };
+
+  function activateInteracted() {
+    if (!document.body.classList.contains('interacted')) {
+      document.body.classList.add('interacted');
+    }
+  }
+
+  function scrollDown() {
+    setTimeout(() => {
+      document.getElementById('pageBody').scrollTo({ top: 999999, behavior: 'smooth' });
+    }, 80);
+  }
+
+  function togglePanel(type) {
+    activateInteracted();
+    const s = panelState[type];
+    if (s.resolved) return;
+    const card  = document.getElementById('card-' + type);
+    const panel = document.getElementById('panel-' + type);
+    if (s.open) {
+      STORE.appendChild(panel);
+      card.classList.remove('active');
+      s.open = false;
+    } else {
+      MOUNT.appendChild(panel);
+      card.classList.add('active');
+      s.open = true;
+      scrollDown();
+    }
+  }
+
+  const cardUpdates = {
+    risk:       { title: 'Driver hours — resolved',      desc: 'All 4 drivers within WTD limit. Decision logged.' },
+    payroll:    { title: 'Payroll — clear for Friday',   desc: 'Reminders sent. 3 new starters validated.' },
+    compliance: { title: 'Compliance — incident raised', desc: 'G&R logged. Qargo schedule fixed.' },
+  };
+
+  const resolveSummaries = {
+    risk:       'Done. 5 stops reallocated to <strong>J. Chen</strong> and <strong>M. Okoro</strong>. Decision logged in T&amp;A and G&amp;R. Qargo routes EM-119 and MN-224 updated. <strong>All 4 drivers now within WTD limit.</strong>',
+    payroll:    'Done. Reminders sent to 4 line managers. 3 new starters validated via HR — onboarding docs confirmed complete. <strong>Payroll run is clear for Friday.</strong>',
+    compliance: 'Done. Incident raised and logged in G&amp;R. Qargo Tuesday schedule adjusted — 3 overlapping time windows resolved. <strong>2 further breaches prevented.</strong>',
+    finance:    'Done. Commercial summary drafted and staged in S2C for procurement review. <strong>FleetLink Ltd</strong> and <strong>LogiTemp</strong> contracts flagged for August renegotiation. <strong>Finance team notified.</strong>',
+    recruitment:'Done. Offer signature chased for 1 pending driver role. Once signed, IQ will automatically trigger HR onboarding, T&amp;A enrolment, and first payslip. <strong>No manual handoff needed.</strong>',
+  };
+
+  function resolvePanel(type) {
+    const s = panelState[type];
+    const card  = document.getElementById('card-' + type);
+    const panel = document.getElementById('panel-' + type);
+    const summary = makeSummary(resolveSummaries[type]);
+    MOUNT.replaceChild(summary, panel);
+    STORE.appendChild(panel);
+    const upd = cardUpdates[type];
+    document.getElementById('card-' + type + '-title').textContent = upd.title;
+    document.getElementById('card-' + type + '-desc').textContent  = upd.desc;
+    const icon = document.getElementById('card-' + type + '-icon');
+    icon.style.background = 'var(--iq-green-light)';
+    icon.style.color = 'var(--iq-green)';
+    icon.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><path d="M2 8l4 4 8-8"/></svg>';
+    card.classList.remove('active');
+    card.classList.add('resolved');
+    card.onclick = null;
+    s.open = false;
+    s.resolved = true;
+    scrollDown();
+  }
+
+  function resolveConversational(type) {
+    const wrapId = type === 'finance' ? 'panel-finance-wrap' : 'panel-recruitment-wrap';
+    const wrap = document.getElementById(wrapId);
+    const summary = makeSummary(resolveSummaries[type]);
+    MOUNT.replaceChild(summary, wrap);
+    STORE.appendChild(wrap);
+    scrollDown();
+  }
+
+  function makeSummary(html) {
+    const el = document.createElement('div');
+    el.className = 'resolved-row';
+    el.innerHTML = `
+      <div class="resolved-icon">
+        <svg viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="2.5" width="11" height="11"><path d="M2 8l4 4 8-8"/></svg>
+      </div>
+      <div class="resolved-text">${html}</div>`;
+    return el;
+  }
+
+  function triggerFinance() {
+    activateInteracted();
+    if (panelState.finance.shown) return;
+    panelState.finance.shown = true;
+    document.getElementById('quickPrompts').style.display = 'none';
+    MOUNT.appendChild(document.getElementById('panel-finance-wrap'));
+    scrollDown();
+  }
+
+  function triggerRecruitment() {
+    activateInteracted();
+    if (panelState.recruitment.shown) return;
+    panelState.recruitment.shown = true;
+    document.getElementById('quickPrompts').style.display = 'none';
+    MOUNT.appendChild(document.getElementById('panel-recruitment-wrap'));
+    scrollDown();
+  }
+
+  function triggerContracts() { triggerFinance(); }
+
+  function dispatchSend(val) {
+    if (!val) return;
+    activateInteracted();
+    if (val.includes('eploy') || val.includes('recruit') || val.includes('hire') || val.includes('pipeline')) {
+      triggerRecruitment();
+    } else {
+      triggerFinance();
+    }
+  }
+
+  function handleSend() {
+    const input = document.getElementById('inputField');
+    const val = input.value.trim().toLowerCase();
+    dispatchSend(val);
+    input.value = '';
+  }
+
+  function handleSendFixed() {
+    const input = document.getElementById('inputFieldFixed');
+    const val = input.value.trim().toLowerCase();
+    dispatchSend(val);
+    input.value = '';
+  }
+
+  document.getElementById('inputField').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+  });
+
+  document.getElementById('inputFieldFixed').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendFixed(); }
+  });
+
+  // Focus the fixed input automatically after transition
+  document.body.addEventListener('transitionend', function(e) {
+    if (e.target.classList.contains('input-fixed') && document.body.classList.contains('interacted')) {
+      document.getElementById('inputFieldFixed').focus();
+    }
+  });
+</script>
+</body>
+</html>
