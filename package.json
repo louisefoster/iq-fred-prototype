@@ -5,5 +5,5 @@
   "scripts": {
     "start": "npx serve ."
   },
-  "homepage": "https://iq-fred-prototype.vercel.app"
+  "homepage": "https://github.com/louisefoster/iq-fred-prototype"
 }
